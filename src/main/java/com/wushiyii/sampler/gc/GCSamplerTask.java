@@ -1,7 +1,10 @@
-package com.wushiyii.sampler;
+package com.wushiyii.sampler.gc;
 
 import com.wushiyii.constants.DefaultAlertConstant;
+import com.wushiyii.sampler.thread.BusyThreadInfo;
+import com.wushiyii.sampler.thread.BusyThreadSampler;
 import com.wushiyii.utils.GcTypeUtil;
+import com.wushiyii.utils.ThreadUtil;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.Date;
@@ -74,6 +77,13 @@ public class GCSamplerTask extends TimerTask {
                     long increasedGcTime = lastGcInfo.getGcTime() - firstGcInfo.getGcTime();
                     lastNoticeTimeMap.put(gcName, currentTime);
                     log.error("[GCSamplerTask] GC-over limit, gcCountThreshold={} gcName={} increasedGcCount={} increasedGcTime={}ms", threshold, gcName, increasedGcCount, increasedGcTime);
+
+                    //todo configurable
+                    List<BusyThreadInfo> busyThreadInfoList = BusyThreadSampler.getTopNBusyThread(10);
+                    for (BusyThreadInfo info : busyThreadInfoList) {
+                        String stacktrace = ThreadUtil.getFullStacktrace(info, -1, -1);
+                        log.info("{}", stacktrace);
+                    }
                 }
             }
 
@@ -91,15 +101,5 @@ public class GCSamplerTask extends TimerTask {
         private long gcCount;
         private long gcTime;
         private long sampleTime;
-    }
-
-    public static void main(String[] args) {
-        LinkedBlockingDeque<Integer> queue = new LinkedBlockingDeque<>();
-        queue.add(1);
-        queue.add(2);
-        queue.add(3);
-        queue.add(5);
-        System.out.println(queue.getFirst());
-        System.out.println(queue.getLast());
     }
 }

@@ -1,6 +1,6 @@
 package com.wushiyii;
 
-import com.wushiyii.sampler.GCSamplerTask;
+import com.wushiyii.sampler.gc.GCSamplerTask;
 import java.lang.instrument.Instrumentation;
 import java.util.Timer;
 import lombok.extern.slf4j.Slf4j;
