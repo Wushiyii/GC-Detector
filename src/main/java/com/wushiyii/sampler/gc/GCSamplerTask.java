@@ -1,6 +1,6 @@
 package com.wushiyii.sampler.gc;
 
-import com.wushiyii.constants.DefaultAlertConstant;
+import com.wushiyii.config.GCSampleConfig;
 import com.wushiyii.sampler.thread.BusyThreadInfo;
 import com.wushiyii.sampler.thread.BusyThreadSampler;
 import com.wushiyii.utils.GcTypeUtil;
@@ -14,8 +14,6 @@ import java.util.Map;
 import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -48,58 +46,63 @@ public class GCSamplerTask extends TimerTask {
             LinkedBlockingDeque<GCInfo> linkedBlockingDeque = gcWindowMap.get(gcName);
             linkedBlockingDeque.add(currentGcInfo);
 
-            //todo configurable
-            if (true) {
 
-                //todo configurable
-                long gcIntervalTime = TimeUnit.MINUTES.toMillis(DefaultAlertConstant.GC_MINUTES_INTERVAL);
-                long noticeIntervalTime = TimeUnit.MINUTES.toMillis(DefaultAlertConstant.NOTICE_MINUTES_INTERVAL);
+            long gcCountRange = TimeUnit.MINUTES.toMillis(GCSampleConfig.COUNT_GC_MINUTES_RANGE);
+            long alertIntervalTime = TimeUnit.SECONDS.toMillis(GCSampleConfig.ALERT_SECOND_INTERVAL);
 
-                //先移除统计时间间隔外的数据
-                linkedBlockingDeque.removeIf(info -> currentTime - info.getSampleTime() > gcIntervalTime);
+            //先移除统计时间间隔外的数据
+            linkedBlockingDeque.removeIf(info -> currentTime - info.getSampleTime() > gcCountRange);
 
-                //时间范围内若无数据则不统计
-                if (linkedBlockingDeque.isEmpty()) {
-                    continue;
-                }
-                //统计gc次数
-                GCInfo firstGcInfo = linkedBlockingDeque.getFirst();
-                GCInfo lastGcInfo = linkedBlockingDeque.getLast();
-                if (log.isDebugEnabled()) {
-                    log.debug("last gc time={}, count={}, name={}", new Date(lastGcInfo.getSampleTime()), lastGcInfo.getGcCount(), lastGcInfo.getGcName());
-                    log.debug("first gc time={} count={}, name={}", new Date(firstGcInfo.getSampleTime()), firstGcInfo.getGcCount(), firstGcInfo.getGcName());
-                }
+            //时间范围内若无数据则不统计
+            if (linkedBlockingDeque.isEmpty()) {
+                continue;
+            }
 
-                long increasedGcCount = lastGcInfo.getGcCount() - firstGcInfo.getGcCount();
-                long threshold = GcTypeUtil.isOld(gcName) ? DefaultAlertConstant.OLD_GC_TIMES_THRESHOLD : DefaultAlertConstant.YGC_TIMES_THRESHOLD;
+            //统计gc次数、gc耗时
+            boolean gcCountAlert = doGCCountSample(gcName, linkedBlockingDeque);
+            boolean gcTimeAlert = doGCTimeSample(gcName, linkedBlockingDeque);
+
+
+            if (gcCountAlert || gcTimeAlert) {
+
                 Long lastNoticeTime = lastNoticeTimeMap.getOrDefault(gcName, 0L);
-                if (increasedGcCount >= threshold && (currentTime - lastNoticeTime >= noticeIntervalTime)) {
-                    long increasedGcTime = lastGcInfo.getGcTime() - firstGcInfo.getGcTime();
-                    lastNoticeTimeMap.put(gcName, currentTime);
-                    log.error("[GCSamplerTask] GC-over limit, gcCountThreshold={} gcName={} increasedGcCount={} increasedGcTime={}ms", threshold, gcName, increasedGcCount, increasedGcTime);
+                if (currentTime - lastNoticeTime >= alertIntervalTime) {
 
-                    //todo configurable
-                    List<BusyThreadInfo> busyThreadInfoList = BusyThreadSampler.getTopNBusyThread(10);
+                    lastNoticeTimeMap.put(gcName, currentTime);
+                    List<BusyThreadInfo> busyThreadInfoList = BusyThreadSampler.getTopNBusyThread(5);
                     for (BusyThreadInfo info : busyThreadInfoList) {
                         String stacktrace = ThreadUtil.getFullStacktrace(info, -1, -1);
                         log.info("{}", stacktrace);
                     }
                 }
             }
-
-
         }
 
     }
 
+    private boolean doGCCountSample(String gcName, LinkedBlockingDeque<GCInfo> linkedBlockingDeque) {
 
-    @Data
-    @AllArgsConstructor
-    public static class GCInfo {
+        GCInfo firstGcInfo = linkedBlockingDeque.getFirst();
+        GCInfo lastGcInfo = linkedBlockingDeque.getLast();
+        if (log.isDebugEnabled()) {
+            log.debug("last gc time={}, count={}, name={}", new Date(lastGcInfo.getSampleTime()), lastGcInfo.getGcCount(), lastGcInfo.getGcName());
+            log.debug("first gc time={} count={}, name={}", new Date(firstGcInfo.getSampleTime()), firstGcInfo.getGcCount(), firstGcInfo.getGcName());
+        }
 
-        private String gcName;
-        private long gcCount;
-        private long gcTime;
-        private long sampleTime;
+        long increasedGcCount = lastGcInfo.getGcCount() - firstGcInfo.getGcCount();
+        long threshold = GcTypeUtil.isOld(gcName) ? GCSampleConfig.OLD_GC_COUNT_THRESHOLD : GCSampleConfig.YGC_COUNT_THRESHOLD;
+        if (increasedGcCount >= threshold) {
+            long increasedGcTime = lastGcInfo.getGcTime() - firstGcInfo.getGcTime();
+            log.error("[GCSamplerTask] GC-count over limit, gcCountThreshold={} gcName={} increasedGcCount={} increasedGcTime={}ms", threshold, gcName, increasedGcCount, increasedGcTime);
+
+            return true;
+        }
+        return false;
+    }
+
+    private boolean doGCTimeSample(String name, LinkedBlockingDeque<GCInfo> deque) {
+
+        //todo
+        return false;
     }
 }

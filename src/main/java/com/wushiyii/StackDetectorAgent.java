@@ -1,5 +1,7 @@
 package com.wushiyii;
 
+import com.wushiyii.config.GCSampleConfig;
+import com.wushiyii.config.GlobalConfig;
 import com.wushiyii.sampler.gc.GCSamplerTask;
 import java.lang.instrument.Instrumentation;
 import java.util.Timer;
@@ -18,16 +20,20 @@ public class StackDetectorAgent {
      */
     public static void premain(String agentArgs, Instrumentation instrumentation) {
 
-        premain0(agentArgs, instrumentation);
+        premain0(agentArgs);
 
     }
 
-    private static void premain0(String agentArgs, Instrumentation instrumentation) {
+    private static void premain0(String agentArgs) {
 
         try {
             log.info("Staring GCDetectorAgent, args={}", agentArgs);
 
-            timer.scheduleAtFixedRate(new GCSamplerTask(), 0, 5000);
+            GlobalConfig.parseArgs(agentArgs);
+
+            if (GCSampleConfig.ENABLE_GC_SAMPLE) {
+                timer.scheduleAtFixedRate(new GCSamplerTask(), 5000, GCSampleConfig.COUNT_GC_MILLS_INTERVAL);
+            }
 
 
             log.info("Start GCDetectorAgent success");
