@@ -31,8 +31,8 @@ public class StackDetectorAgent {
 
             GlobalConfig.parseArgs(agentArgs);
 
-            if (GCSampleConfig.ENABLE_GC_SAMPLE) {
-                timer.scheduleAtFixedRate(new GCSamplerTask(), 5000, GCSampleConfig.COUNT_GC_MILLS_INTERVAL);
+            if (GCSampleConfig.getInstance().isEnable()) {
+                timer.scheduleAtFixedRate(new GCSamplerTask(), 5000, GCSampleConfig.getInstance().getSampleIntervalInMills());
             }
 
 

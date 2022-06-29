@@ -47,8 +47,8 @@ public class GCSamplerTask extends TimerTask {
             linkedBlockingDeque.add(currentGcInfo);
 
 
-            long gcCountRange = TimeUnit.MINUTES.toMillis(GCSampleConfig.COUNT_GC_MINUTES_RANGE);
-            long alertIntervalTime = TimeUnit.SECONDS.toMillis(GCSampleConfig.ALERT_SECOND_INTERVAL);
+            long gcCountRange = TimeUnit.MINUTES.toMillis(GCSampleConfig.getInstance().getCountGcMinutesRange());
+            long alertIntervalTime = GCSampleConfig.getInstance().getAlertIntervalInMills();
 
             //先移除统计时间间隔外的数据
             linkedBlockingDeque.removeIf(info -> currentTime - info.getSampleTime() > gcCountRange);
@@ -90,7 +90,10 @@ public class GCSamplerTask extends TimerTask {
     private boolean doGCCountSample(String gcName, GCInfo firstGcInfo, GCInfo lastGcInfo) {
 
         long increasedGcCount = lastGcInfo.getGcCount() - firstGcInfo.getGcCount();
-        long threshold = GcTypeUtil.isOld(gcName) ? GCSampleConfig.OLD_GC_COUNT_THRESHOLD : GCSampleConfig.YGC_COUNT_THRESHOLD;
+        long threshold = GcTypeUtil.isOld(gcName) ? GCSampleConfig.getInstance().getOldGcCountThreshold() : GCSampleConfig.getInstance().getYgcCountThreshold();
+        if (threshold == 0) {
+            return false;
+        }
         if (increasedGcCount >= threshold) {
             log.error("[GCSamplerTask] GC-count over limit, gcCountThreshold={} gcName={} increasedGcCount={}", threshold, gcName, increasedGcCount);
             return true;
@@ -101,8 +104,11 @@ public class GCSamplerTask extends TimerTask {
     private boolean doGCTimeSample(String gcName, GCInfo firstGcInfo, GCInfo lastGcInfo) {
 
         long increasedGcTime = firstGcInfo.getGcTime() - lastGcInfo.getGcTime();
-        long threshold = GcTypeUtil.isOld(gcName) ? GCSampleConfig.YGC_TIME_MILLS_THRESHOLD : GCSampleConfig.OLD_GC_TIME_MILLS_THRESHOLD;
-        if (increasedGcTime > threshold) {
+        long threshold = GcTypeUtil.isOld(gcName) ? GCSampleConfig.getInstance().getOldGcTimeMillsThreshold() : GCSampleConfig.getInstance().getYgcTimeMillsThreshold();
+        if (threshold == 0) {
+            return false;
+        }
+        if (increasedGcTime >= threshold) {
             log.error("[GCSamplerTask] GC-time over limit, gcTimeThreshold={} gcName={} increasedGcTime={}ms", threshold, gcName, increasedGcTime);
             return true;
         }
