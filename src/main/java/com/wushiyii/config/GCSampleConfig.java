@@ -10,7 +10,7 @@ public class GCSampleConfig extends BaseConfig{
 
     private static GCSampleConfig instance = new GCSampleConfig();
 
-    private Integer countGcMinutesRange = 1; //统计GC的时间范围
+    private int countGcMinutesRange = 1; //统计GC的时间范围
 
     private long ygcCountThreshold = 5; //ygc数量在时间范围内超过阈值，则报警
 
@@ -26,7 +26,7 @@ public class GCSampleConfig extends BaseConfig{
             instance.setEnable(Boolean.parseBoolean(agentArgsMap.get("enableGCSample")));
         }
         if (agentArgsMap.containsKey("countGcMinutesRange")) {
-            instance.setCountGcMinutesRange(Integer.valueOf(agentArgsMap.get("countGcMinutesRange")));
+            instance.setCountGcMinutesRange(Integer.parseInt(agentArgsMap.get("countGcMinutesRange")));
         }
         if (agentArgsMap.containsKey("ygcCountThreshold")) {
             instance.setYgcCountThreshold(Long.parseLong(agentArgsMap.get("ygcCountThreshold")));

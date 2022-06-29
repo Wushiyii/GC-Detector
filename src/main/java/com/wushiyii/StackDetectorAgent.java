@@ -2,7 +2,9 @@ package com.wushiyii;
 
 import com.wushiyii.config.GCSampleConfig;
 import com.wushiyii.config.GlobalConfig;
-import com.wushiyii.sampler.gc.GCSamplerTask;
+import com.wushiyii.config.MachineSampleConfig;
+import com.wushiyii.sampler.gc.GCSampleTask;
+import com.wushiyii.sampler.machine.MachineSampleTask;
 import java.lang.instrument.Instrumentation;
 import java.util.Timer;
 import lombok.extern.slf4j.Slf4j;
@@ -31,15 +33,24 @@ public class StackDetectorAgent {
 
             GlobalConfig.parseArgs(agentArgs);
 
-            if (GCSampleConfig.getInstance().isEnable()) {
-                timer.scheduleAtFixedRate(new GCSamplerTask(), 5000, GCSampleConfig.getInstance().getSampleIntervalInMills());
-            }
-
+            startSampleTask();
 
             log.info("Start GCDetectorAgent success");
         } catch (Exception e) {
             log.error("Failed to start GCDetectorAgent, args={}", agentArgs, e);
         }
+    }
+
+    private static void startSampleTask() {
+
+        if (GCSampleConfig.getInstance().isEnable()) {
+            timer.scheduleAtFixedRate(new GCSampleTask(), 5000, GCSampleConfig.getInstance().getSampleIntervalInMills());
+        }
+
+        if (MachineSampleConfig.getInstance().isEnable()) {
+            timer.scheduleAtFixedRate(new MachineSampleTask(), 5000, GCSampleConfig.getInstance().getSampleIntervalInMills());
+        }
+
     }
 
 }

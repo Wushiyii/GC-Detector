@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class GCSamplerTask extends TimerTask {
+public class GCSampleTask extends TimerTask {
 
     private final Map<String, LinkedBlockingDeque<GCInfo>> gcWindowMap = new HashMap<>();
     private final Map<String, Long> lastNoticeTimeMap = new HashMap<>();
