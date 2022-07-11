@@ -64,6 +64,48 @@ GC事件探测，窗口时间内大于阈值或高CPU活动会报警并打印JSt
 
 
 #### 原理
+通过JavaAgent的premain进行jar包启动，jar包启动后通过Instrument包进行定时CPU、Memory、GC监听，超过指定阈值则会打印忙碌堆栈。
+也可以经过二次开发支持企业微信等IM
+```java
+public static void premain(String agentArgs, Instrumentation instrumentation) {
+
+        premain0(agentArgs);
+
+    }
+    
+    //所有的Agent包都是通过premain入口进入
+    private static void premain0(String agentArgs) {
+
+        try {
+            log.info("Staring GCDetectorAgent, args={}", agentArgs);
+
+            //解析制定配置
+            GlobalConfig.parseArgs(agentArgs);
+
+            //定时任务启动
+            startSampleTask();
+
+            log.info("Start GCDetectorAgent success");
+        } catch (Exception e) {
+            log.error("Failed to start GCDetectorAgent, args={}", agentArgs, e);
+        }
+    }
+
+    private static void startSampleTask() {
+
+        //监听GC
+        if (GCSampleConfig.getInstance().isEnable()) {
+            timer.scheduleAtFixedRate(new GCSampleTask(), 1000, GCSampleConfig.getInstance().getSampleIntervalInMills());
+        }
+        //监听Memory
+        if (MachineSampleConfig.getInstance().isEnable()) {
+            timer.scheduleAtFixedRate(new MachineSampleTask(), 1000, GCSampleConfig.getInstance().getSampleIntervalInMills());
+        }
+
+    }
+```
+
+
 
 
 
