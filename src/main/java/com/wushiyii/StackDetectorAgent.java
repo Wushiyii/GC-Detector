@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 public class StackDetectorAgent {
 
 
-    private static final Timer timer = new Timer("GC-Detector-timer", true);
+    private static final Timer timer = new Timer("JVM-Detector-timer", true);
 
     /**
      * 入口
